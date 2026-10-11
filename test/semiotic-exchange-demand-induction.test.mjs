@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { makeNiUri, verifyNiUri } from "@red-cup-engineering/ni-uri-services-section";
+import { makeNiUri, verifyNiUri } from "@red-cup-engineering/uri-services-section/ni-uri";
 import {
   induceCapabilityRepairDemand,
   inducePrivateLiveMudDemand,
@@ -95,7 +95,7 @@ test("conserves a witnessed refusal as canonical raiseDemand material rather tha
     objective: "normalize a real Obsmetrologia carrier under its public law",
     refusalCode: "normalizer-actuator-unavailable",
     refusalWitnessNis: [ni("normalizer-refusal")],
-    requiredStandard: "RMN canonical relational value",
+    requiredStandard: "SEN canonical relational value",
     inputNi: ni("frozen-carrier"),
   });
   assert.equal(result.type, "CapabilityRepairDemandInductionReceipt");
@@ -106,6 +106,6 @@ test("conserves a witnessed refusal as canonical raiseDemand material rather tha
   assert.throws(() => induceCapabilityRepairDemand({
     raiser: "0x08E4B3bc9ef76b403879C0eC372d1Fd146E3a07B", locus: "https://gui.561.group/l-space/obsmetrologia",
     operation: "normalize-obsmetrologia-carrier", objective: "normalize one real carrier", refusalCode: "normalizer-actuator-unavailable",
-    refusalWitnessNis: [], requiredStandard: "RMN canonical relational value", inputNi: ni("frozen-carrier"),
+    refusalWitnessNis: [], requiredStandard: "SEN canonical relational value", inputNi: ni("frozen-carrier"),
   }), /refusal witness/u);
 });
