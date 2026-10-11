@@ -1,25 +1,13 @@
-import { createHash } from "node:crypto";
-import { articulate, mark, predicating, utterance } from "@lenticule-science/articulating";
-import {
-  charge,
-  chargeValue,
-  chargeValueName,
-  joinKnowledgeValue,
-  posit,
-  presentPositPresheaf,
-  valuationOfCharge,
-  valueOf,
-} from "@lenticule-science/articulating/predicating/positing";
-import {
-  presentSettlementFiltration,
-  settleKnowledge,
-  settlementClosureProfile,
-} from "@lenticule-science/articulating/predicating/positing/settling";
-import { isCanonicalSha256NiUri } from "@red-cup-engineering/semantic-content-identify-service";
+import { cell, triple } from "@red-cup-engineering/signcell/cell";
+import { presentSite } from "@red-cup-engineering/signgraph/site";
+import { filtrationOf, settleCells } from "@red-cup-engineering/signcraft/settle";
+import { isNiUri } from "@red-cup-engineering/uri-services-section/ni-uri";
 import {
   EMPTY_WITNESS_ROOT,
   identifyJsonSemanticContent,
-} from "@red-cup-engineering/semantic-content-identify-service";
+} from "@red-cup-engineering/computer-content-engineering-services-section/semantic-content-identity";
+import { sha256Hex } from "@red-cup-engineering/cryptographic-computer-data-engineering-services-section/integrity";
+import { readingOfSides, knowledgeJoinReading } from "@red-cup-engineering/computer-data-engineering-services-section/four";
 
 const LOCUS = "https://gui.561.group/";
 const REQUIREMENTS = Object.freeze([
@@ -44,11 +32,11 @@ function typed(value) {
 }
 
 function bytes32(bytes) {
-  return `0x${createHash("sha256").update(bytes).digest("hex")}`;
+  return `0x${sha256Hex(bytes)}`;
 }
 
 function exactEvidence(values, label) {
-  if (!Array.isArray(values) || values.some((value) => !isCanonicalSha256NiUri(value))) {
+  if (!Array.isArray(values) || values.some((value) => !isNiUri(value))) {
     throw new TypeError(`${label} must be an array of canonical SHA-256 ni evidence identifiers`);
   }
   return Object.freeze([...new Set(values)].sort());
@@ -57,37 +45,26 @@ function exactEvidence(values, label) {
 function supportOf(observation) {
   const positive = exactEvidence(observation?.positive, `${observation?.requirement ?? "observation"}.positive`);
   const negative = exactEvidence(observation?.negative, `${observation?.requirement ?? "observation"}.negative`);
-  const value = positive.length && negative.length ? "stable" : positive.length ? "potential" : negative.length ? "active" : "absurd";
-  const carrier = charge(chargeValue(value), [positive.map(mark), negative.map(mark)]);
   return Object.freeze({
-    value: chargeValueName(valueOf(carrier)),
-    coordinates: Object.freeze(carrier.value.map(({ name }) => name)),
+    reading: readingOfSides("knowledge", positive.length > 0, negative.length > 0),
     positive,
     negative,
   });
 }
 
+/** A requirement's descent: its claim about its locus told as a cell (the observed positive evidence
+ *  for it, the negative against), the site that cell generates, and its settlement — each stage presented
+ *  as typed SEN content by its ni. */
 function descent(requirement, support) {
-  const admitted = utterance(mark({ locus: LOCUS, requirement: requirement.id }), mark({ claim: requirement.claim, support }));
-  const articulation = articulate(admitted);
-  const predication = predicating.predicate(articulation);
-  const predicationGenerators = predicating.presentPredicationSite(predication);
-  const observedCharge = charge(chargeValue(support.value), [support.positive.map(mark), support.negative.map(mark)]);
-  const positing = posit(predication, valuationOfCharge(predication, observedCharge));
-  const positGenerators = presentPositPresheaf(positing);
-  const closureProfile = settlementClosureProfile("knowledge");
-  const settlement = settleKnowledge(positing);
-  const settlementGenerators = presentSettlementFiltration(positing, closureProfile);
-  const articulationPresentation = typed(admitted);
-  const predicationPresentation = typed(predicationGenerators);
-  const positPresentation = typed({ generators: positGenerators, observedSupport: support });
-  const settlementPresentation = typed(settlementGenerators);
+  const token = { locus: LOCUS, requirement: requirement.id };
+  const told = cell(token, requirement.claim, token, { for: support.positive, against: support.negative });
+  const settlement = settleCells([told]);
   return Object.freeze({
     requirement: requirement.id,
-    articulation: Object.freeze({ kind: articulation.kind, presentation: articulationPresentation.ni }),
-    predication: Object.freeze({ kind: predication.kind, generators: predicationGenerators.cells.length, presentation: predicationPresentation.ni }),
-    positing: Object.freeze({ kind: positing.kind, presentation: positPresentation.ni, observedCharge: support.value }),
-    settlement: Object.freeze({ kind: settlement.kind, stages: settlement.stages.length, presentation: settlementPresentation.ni }),
+    articulation: Object.freeze({ kind: "signcell.cell", presentation: typed(triple(told)).ni }),
+    predication: Object.freeze({ kind: "signgraph.site", generators: settlement.site.cells.length, presentation: typed(presentSite(settlement.site)).ni }),
+    positing: Object.freeze({ kind: "signgraph.valuation", presentation: typed({ cell: told, observedSupport: support }).ni, observedReading: support.reading }),
+    settlement: Object.freeze({ kind: settlement.kind, stages: settlement.stages.length, presentation: typed(filtrationOf(settlement)).ni }),
   });
 }
 
@@ -111,7 +88,7 @@ export function inducePrivateLiveMudDemand({ observations }) {
 
   const nodes = REQUIREMENTS.map((requirement) => {
     const support = supportOf(byRequirement.get(requirement.id));
-    return Object.freeze({ ...requirement, support, satisfied: support.value === "potential" });
+    return Object.freeze({ ...requirement, support, satisfied: support.reading === "potential" });
   });
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const causalGraph = Object.freeze(nodes.map((node) => Object.freeze({
@@ -119,14 +96,14 @@ export function inducePrivateLiveMudDemand({ observations }) {
     postcondition: node.claim,
     dependsOn: node.dependsOn,
     blockedBy: Object.freeze(node.dependsOn.filter((id) => !nodeById.get(id).satisfied)),
-    support: node.support.value,
+    support: node.support.reading,
     satisfied: node.satisfied,
     successorRequired: !node.satisfied,
   })));
   const restrictedArena = Object.freeze(causalGraph
     .filter((node) => !node.satisfied && node.blockedBy.length === 0)
     .flatMap(({ id, postcondition, support }) => ["positive", "negative"].map((side) => {
-      const evidenceCharge = side === "positive" ? "potential" : "active";
+      const evidenceReading = side === "positive" ? "potential" : "active";
       return Object.freeze({
         operation: "admit-prerequisite-evidence",
         prerequisite: id,
@@ -134,7 +111,7 @@ export function inducePrivateLiveMudDemand({ observations }) {
         evidenceSide: side,
         evidenceType: "canonical admitted receipt ni",
         observedSupport: support,
-        resultingHistoricalSupport: chargeValueName(joinKnowledgeValue(chargeValue(support), chargeValue(evidenceCharge))),
+        resultingHistoricalSupport: knowledgeJoinReading(support, evidenceReading),
         completionWitness: side === "positive"
           ? "a potential successor observation at a later witnessed chain/federation position"
           : null,
@@ -205,7 +182,7 @@ function exactCode(value, label) {
 
 /**
  * Turn one actually witnessed inability into an addressable capability demand.
- * This is deliberately not a queue entry: it is immutable RMN material for
+ * This is deliberately not a queue entry: it is immutable SEN material for
  * `SemioticExchange.raiseDemand`, and its failure witness stays in the
  * grounding after a provider later succeeds.
  */
@@ -218,7 +195,7 @@ export function induceCapabilityRepairDemand({ raiser, locus, operation, objecti
   const witnesses = exactEvidence(refusalWitnessNis, "refusalWitnessNis");
   if (witnesses.length === 0) throw new TypeError("at least one refusal witness is required");
   if (typeof requiredStandard !== "string" || requiredStandard.length === 0) throw new TypeError("requiredStandard must be nonempty text");
-  if (!isCanonicalSha256NiUri(inputNi)) throw new TypeError("inputNi must be a canonical SHA-256 ni identifier");
+  if (!isNiUri(inputNi)) throw new TypeError("inputNi must be a canonical SHA-256 ni identifier");
 
   const residue = typed({
     type: "CapabilityRefusalResidue",
