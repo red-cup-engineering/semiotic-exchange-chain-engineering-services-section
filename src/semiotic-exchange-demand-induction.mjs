@@ -5,7 +5,7 @@ import { isNiUri } from "@red-cup-engineering/uri-services-section/ni-uri";
 import {
   EMPTY_WITNESS_ROOT,
   identifyJsonSemanticContent,
-} from "@red-cup-engineering/computer-content-engineering-services-section/semantic-content-identity";
+} from "@red-cup-engineering/computer-content-address-engineering-services-section/semantic-content-identity";
 import { sha256Hex } from "@red-cup-engineering/cryptographic-computer-data-engineering-services-section/integrity";
 import { readingOfSides, knowledgeJoinReading } from "@red-cup-engineering/computer-data-engineering-services-section/four";
 
