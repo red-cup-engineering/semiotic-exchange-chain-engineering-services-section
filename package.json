@@ -6,8 +6,7 @@
   "description": "RCE's Semiotic Exchange Chain Services Section: specifies the fusion of public standard protocols -- EAVT/Datom, EVM settlement, ActivityPub/WMAP, A2A, x402, UCAN -- into one exchange chain in which the chain is the only durable home, actuators are ephemeral, and the Semiotic Voxel exists only actively. This section specifies; it does not itself operate a chain.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/red-cup-engineering/semiotic-computer-system-services-section.git",
-    "directory": "services/semiotic-exchange-chain-services-section"
+    "url": "git+https://github.com/red-cup-engineering/semiotic-exchange-chain-services-section.git"
   },
   "files": [
     "content",
