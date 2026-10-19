@@ -1,0 +1,8 @@
+[submodule "sovereign-membrane-admission-service"]
+	path = services/sovereign-membrane-admission-service
+	url = https://github.com/red-cup-engineering/sovereign-membrane-admission-service.git
+	branch = main
+[submodule "modeled-union-dimension"]
+	path = services/modeled-union-dimension
+	url = https://github.com/red-cup-engineering/modeled-union-dimension.git
+	branch = main
